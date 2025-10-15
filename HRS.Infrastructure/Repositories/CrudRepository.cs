@@ -1,39 +1,39 @@
 using System.Linq.Expressions;
 using HRS.Domain.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
+using MongoDB.Driver;
 
 namespace HRS.Infrastructure.Repositories;
 
 public class CrudRepository<T> : ICrudRepository<T> where T : class
 {
-    protected readonly AppDbContext _db;
-    protected readonly DbSet<T> _dbSet;
+    protected readonly IMongoCollection<T> _collection;
 
-    public CrudRepository(AppDbContext db)
+    public CrudRepository(MongoContext context, string collectionName)
     {
-        _db = db;
-        _dbSet = db.Set<T>();
+        _collection = context.Database.GetCollection<T>(collectionName);
     }
 
-    public async Task<T?> GetByIdAsync(object id) => await _dbSet.FindAsync(id);
+    public async Task<T?> GetByIdAsync(object id) =>
+        await _collection.Find(Builders<T>.Filter.Eq("Id", id)).FirstOrDefaultAsync();
 
-    public async Task<IEnumerable<T>> GetAllAsync() => await _dbSet.ToListAsync();
+    public async Task<IEnumerable<T>> GetAllAsync() =>
+        await _collection.Find(_ => true).ToListAsync();
 
-    public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
-        => await _dbSet.Where(predicate).ToListAsync();
+    public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate) =>
+        await _collection.Find(predicate).ToListAsync();
 
-    public async Task AddAsync(T entity) => await _dbSet.AddAsync(entity);
+    public async Task AddAsync(T entity) =>
+        await _collection.InsertOneAsync(entity);
 
-    public async Task AddRangeAsync(IEnumerable<T> entities) => await _dbSet.AddRangeAsync(entities);
+    public async Task AddRangeAsync(IEnumerable<T> entities) =>
+        await _collection.InsertManyAsync(entities);
 
-    public void Update(T entity) => _dbSet.Update(entity);
+    public async Task UpdateAsync(T entity, object id) =>
+        await _collection.ReplaceOneAsync(Builders<T>.Filter.Eq("Id", id), entity);
 
-    public void Remove(T entity) => _dbSet.Remove(entity);
+    public async Task RemoveAsync(object id) =>
+        await _collection.DeleteOneAsync(Builders<T>.Filter.Eq("Id", id));
 
-    public void RemoveRange(IEnumerable<T> entities) => _dbSet.RemoveRange(entities);
-
-    public async Task<int> SaveChangesAsync() => await _db.SaveChangesAsync();
-
-    public async Task<IDbContextTransaction> BeginTransactionAsync() => await _db.Database.BeginTransactionAsync();
+    public async Task RemoveRangeAsync(IEnumerable<object> ids) =>
+        await _collection.DeleteManyAsync(Builders<T>.Filter.In("Id", ids));
 }

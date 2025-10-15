@@ -11,20 +11,20 @@ public class PaymentService : IPaymentService
 {
     private readonly IAppConfiguration _appConfiguration;
     private readonly IPaymentRepository _paymentRepository;
-    private readonly IRentalOrderService _rentalOrderService;
+    // private readonly IRentalOrderService _rentalOrderService;
     private readonly SessionService _sessionService;
-    private readonly IUserContextService _userContextService;
+    // private readonly IUserContextService _userContextService;
 
     public PaymentService(
-        IUserContextService userContextService,
+        // IUserContextService userContextService,
         IAppConfiguration appConfiguration,
-        IRentalOrderService rentalOrderService,
+        // IRentalOrderService rentalOrderService,
         IPaymentRepository paymentRepository,
         SessionService? sessionService = null)
     {
-        _userContextService = userContextService;
+        // _userContextService = userContextService;
         _appConfiguration = appConfiguration;
-        _rentalOrderService = rentalOrderService;
+        // _rentalOrderService = rentalOrderService;
         _paymentRepository = paymentRepository;
 
         // Use the provided service for testing, fallback to real service for production
@@ -34,8 +34,9 @@ public class PaymentService : IPaymentService
     public async Task<Session> CreatePayments(int orderId, double amount)
     {
         StripeConfiguration.ApiKey = _appConfiguration.StripeApiKey;
-        var user = await _userContextService.GetUserAsync();
-        var id = user.Id.ToString();
+        // var user = await _userContextService.GetUserAsync();
+        // var id = user.Id.ToString();
+        var id = 1;
         var orderName = "OrderID:" + orderId + "-User:" + id;
 
         var options = new SessionCreateOptions
@@ -57,7 +58,9 @@ public class PaymentService : IPaymentService
                 }
             },
             Mode = "payment",
-            CustomerEmail = user.Email,
+            // CustomerEmail = user.Email,
+            CustomerEmail = "Test@hrs.com",
+            Customer="krit",
             UiMode = "embedded",
             ReturnUrl = _appConfiguration.PaymentReturnPath,
             ExpiresAt = DateTime.UtcNow.AddMinutes(35)
@@ -65,7 +68,7 @@ public class PaymentService : IPaymentService
 
         var session = await _sessionService.CreateAsync(options);
 
-        await _rentalOrderService.AssignStripeSessionIdAsync(orderId, session.Id);
+        // await _rentalOrderService.AssignStripeSessionIdAsync(orderId, session.Id);
 
         return session;
     }
@@ -88,7 +91,12 @@ public class PaymentService : IPaymentService
             throw new InvalidOperationException("Payment not completed.");
 
         if (session.Status == "complete")
-            await _rentalOrderService.ApprovePaymentAsync(sessionId, session.AmountTotal);
+        {
+            // await _rentalOrderService.ApprovePaymentAsync(sessionId, session.AmountTotal);
+            await Task.CompletedTask;
+        }
+
+
     }
 
     public async Task RecordPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType)
@@ -99,7 +107,8 @@ public class PaymentService : IPaymentService
         if (existingPayments != null)
             return;
 
-        var user = await _userContextService.GetUserAsync();
+        // var user = await _userContextService.GetUserAsync();
+        var userid = 1;
 
         var payment = new Payment
         {
@@ -109,7 +118,7 @@ public class PaymentService : IPaymentService
             PaymentType = paymentType,
             PaymentDate = DateTime.UtcNow,
             Status = PaymentStatus.Completed,
-            CreatedBy = user,
+            CreatedById = userid,
             CreatedAt = DateTime.UtcNow
         };
         await _paymentRepository.AddAsync(payment);
