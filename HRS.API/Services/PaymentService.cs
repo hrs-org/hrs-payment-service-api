@@ -60,7 +60,6 @@ public class PaymentService : IPaymentService
             Mode = "payment",
             // CustomerEmail = user.Email,
             CustomerEmail = "Test@hrs.com",
-            Customer="krit",
             UiMode = "embedded",
             ReturnUrl = _appConfiguration.PaymentReturnPath,
             ExpiresAt = DateTime.UtcNow.AddMinutes(35)

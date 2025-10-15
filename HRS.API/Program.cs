@@ -17,7 +17,6 @@ using MongoDB.Driver;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IPaymentService, PaymentService>();
-
 builder.Services.AddScoped<IAppConfiguration, AppConfiguration>();
 builder.Services.AddHttpContextAccessor();
 
@@ -29,7 +28,7 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
 {
     var connectionString = sp.GetRequiredService<IConfiguration>()
                              .GetConnectionString("DefaultConnection");
-    return new MongoClient(connectionString); // analyzer จะไม่เตือน CA2000
+    return new MongoClient(connectionString);
 });
 
 // MongoContext
