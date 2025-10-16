@@ -6,9 +6,9 @@ namespace HRS.Domain.Entities;
 
 public class Payment
 {
-    [BsonId] // primary key
-    [BsonRepresentation(BsonType.Int32)]
-    public int Id { get; set; }
+    [BsonId]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string Id { get; set; } = ObjectId.GenerateNewId().ToString();
 
     [BsonElement("rentalOrderId")]
     public int RentalOrderId { get; set; }

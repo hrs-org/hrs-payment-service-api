@@ -1,3 +1,4 @@
+using HRS.Domain.Entities;
 using HRS.Domain.Enums;
 using Stripe.Checkout;
 
@@ -9,4 +10,7 @@ public interface IPaymentService
     Task VerifyPaymentAsync(string clientSecret);
 
     Task RecordPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType);
+    Task<String> TestMongoDB(int orderId, long? amount, string? sessionId, PaymentType paymentType);
+    Task<Payment> TestMongoDBGET(string ID);
+    Task<Payment> TestMongoDBGETbyOrderID(int ID);
 }

@@ -2,6 +2,7 @@ using HRS.API.Services.Interfaces;
 using HRS.Domain.Entities;
 using HRS.Domain.Enums;
 using HRS.Domain.Interfaces;
+using HRS.Shared.Core.Interfaces;
 using Stripe;
 using Stripe.Checkout;
 
@@ -121,5 +122,48 @@ public class PaymentService : IPaymentService
             CreatedAt = DateTime.UtcNow
         };
         await _paymentRepository.AddAsync(payment);
+    }
+
+    public async Task<String> TestMongoDB(int orderId, long? amount, string? sessionId, PaymentType paymentType)
+    {
+
+        var userid = 1;
+
+        var payment = new Payment
+        {
+            RentalOrderId = orderId,
+            StripeSessionId = sessionId,
+            Amount = (decimal)(amount ?? 0) / 100,
+            PaymentType = paymentType,
+            PaymentDate = DateTime.UtcNow,
+            Status = PaymentStatus.Completed,
+            CreatedById = userid,
+            CreatedAt = DateTime.UtcNow
+        };
+        await _paymentRepository.AddAsync(payment);
+        // await _paymentRepository.AddAsync(payment);
+        if (payment.Id == null) throw new InvalidOperationException("Null id");
+
+        return payment.Id;
+    }
+
+    public async Task<Payment> TestMongoDBGET(string ID)
+    {
+
+        var data = await _paymentRepository.GetByIdAsync(ID);
+
+        if (data == null) throw new InvalidOperationException("ERROR");
+
+        return data;
+    }
+
+    public async Task<Payment> TestMongoDBGETbyOrderID(int ID)
+    {
+
+        var data = await _paymentRepository.GetByRentalOrderIdAsync(ID);
+
+        if(data==null)throw new InvalidOperationException("ERROR");
+
+        return data;
     }
 }
