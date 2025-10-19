@@ -12,20 +12,21 @@ public class PaymentService : IPaymentService
 {
     private readonly IAppConfiguration _appConfiguration;
     private readonly IPaymentRepository _paymentRepository;
-    // private readonly IRentalOrderService _rentalOrderService;
     private readonly SessionService _sessionService;
-    // private readonly IUserContextService _userContextService;
+    private readonly IUserContextService _userContextService;
+
+    private readonly HttpClient _httpClient;
 
     public PaymentService(
-        // IUserContextService userContextService,
+        IUserContextService userContextService,
         IAppConfiguration appConfiguration,
-        // IRentalOrderService rentalOrderService,
+        IHttpClientFactory httpClientFactory,
         IPaymentRepository paymentRepository,
         SessionService? sessionService = null)
     {
-        // _userContextService = userContextService;
+        _userContextService = userContextService;
         _appConfiguration = appConfiguration;
-        // _rentalOrderService = rentalOrderService;
+        _httpClient = httpClientFactory.CreateClient("RentalOrderService");
         _paymentRepository = paymentRepository;
 
         // Use the provided service for testing, fallback to real service for production
@@ -35,9 +36,8 @@ public class PaymentService : IPaymentService
     public async Task<Session> CreatePayments(int orderId, double amount)
     {
         StripeConfiguration.ApiKey = _appConfiguration.StripeApiKey;
-        // var user = await _userContextService.GetUserAsync();
-        // var id = user.Id.ToString();
-        var id = 1;
+        var user = await _userContextService.GetUserAsync();
+        var id = user.Id.ToString();
         var orderName = "OrderID:" + orderId + "-User:" + id;
 
         var options = new SessionCreateOptions
@@ -59,16 +59,16 @@ public class PaymentService : IPaymentService
                 }
             },
             Mode = "payment",
-            // CustomerEmail = user.Email,
-            CustomerEmail = "Test@hrs.com",
+            CustomerEmail = user.Email,
             UiMode = "embedded",
             ReturnUrl = _appConfiguration.PaymentReturnPath,
             ExpiresAt = DateTime.UtcNow.AddMinutes(35)
         };
 
         var session = await _sessionService.CreateAsync(options);
-
-        // await _rentalOrderService.AssignStripeSessionIdAsync(orderId, session.Id);
+        // Console.WriteLine("Stripe Session ID: " + session.Id);
+        var response = await _httpClient.PostAsJsonAsync("/api/order/assign-stripe-sessionid", new { orderId, sessionId = session.Id });
+        response.EnsureSuccessStatusCode();
 
         return session;
     }
@@ -107,8 +107,7 @@ public class PaymentService : IPaymentService
         if (existingPayments != null)
             return;
 
-        // var user = await _userContextService.GetUserAsync();
-        var userid = 1;
+        var user = await _userContextService.GetUserAsync();
 
         var payment = new Payment
         {
@@ -118,16 +117,16 @@ public class PaymentService : IPaymentService
             PaymentType = paymentType,
             PaymentDate = DateTime.UtcNow,
             Status = PaymentStatus.Completed,
-            CreatedById = userid,
+            CreatedById = user.Id,
             CreatedAt = DateTime.UtcNow
         };
         await _paymentRepository.AddAsync(payment);
     }
 
-    public async Task<String> TestMongoDB(int orderId, long? amount, string? sessionId, PaymentType paymentType)
+    public async Task<String> AddAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType)
     {
 
-        var userid = 1;
+        var user = await _userContextService.GetUserAsync();
 
         var payment = new Payment
         {
@@ -137,17 +136,38 @@ public class PaymentService : IPaymentService
             PaymentType = paymentType,
             PaymentDate = DateTime.UtcNow,
             Status = PaymentStatus.Completed,
-            CreatedById = userid,
-            CreatedAt = DateTime.UtcNow
+            CreatedById = user.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedById = user.Id,
+            UpdatedAt = DateTime.UtcNow
         };
         await _paymentRepository.AddAsync(payment);
-        // await _paymentRepository.AddAsync(payment);
         if (payment.Id == null) throw new InvalidOperationException("Null id");
 
         return payment.Id;
     }
 
-    public async Task<Payment> TestMongoDBGET(string ID)
+    public async Task<String> UpdateAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType)
+    {
+
+        var user = await _userContextService.GetUserAsync();
+        var payment = await _paymentRepository.GetByRentalOrderIdAsync(orderId);
+
+        if (payment == null) throw new InvalidOperationException("Payment not found");
+        payment.RentalOrderId = orderId;
+        payment.StripeSessionId = sessionId;
+        payment.Amount = (decimal)(amount ?? 0) / 100;
+        payment.PaymentType = paymentType;
+        payment.PaymentDate = DateTime.UtcNow;
+        payment.Status = PaymentStatus.Completed;
+        payment.UpdatedById = user.Id;
+        payment.UpdatedAt = DateTime.UtcNow;
+
+        await _paymentRepository.UpdateAsync(payment, payment.Id);
+        return payment.Id;
+    }
+
+    public async Task<Payment> MongoDBGET(string ID)
     {
 
         var data = await _paymentRepository.GetByIdAsync(ID);
@@ -157,7 +177,7 @@ public class PaymentService : IPaymentService
         return data;
     }
 
-    public async Task<Payment> TestMongoDBGETbyOrderID(int ID)
+    public async Task<Payment> GETbyOrderID(int ID)
     {
 
         var data = await _paymentRepository.GetByRentalOrderIdAsync(ID);

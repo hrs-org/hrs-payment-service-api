@@ -10,7 +10,8 @@ public interface IPaymentService
     Task VerifyPaymentAsync(string clientSecret);
 
     Task RecordPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType);
-    Task<String> TestMongoDB(int orderId, long? amount, string? sessionId, PaymentType paymentType);
-    Task<Payment> TestMongoDBGET(string ID);
-    Task<Payment> TestMongoDBGETbyOrderID(int ID);
+    Task<String> AddAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType);
+    Task<Payment> MongoDBGET(string ID);
+    Task<Payment> GETbyOrderID(int ID);
+    Task<String> UpdateAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType);
 }

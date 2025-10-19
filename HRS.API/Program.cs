@@ -8,6 +8,7 @@ using HRS.API.Validators.Payment;
 using HRS.Domain.Interfaces;
 using HRS.Infrastructure;
 using HRS.Infrastructure.Repositories;
+using HRS.Shared.Core.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -18,6 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAppConfiguration, AppConfiguration>();
+builder.Services.AddScoped<IUserContextService, UserContextService>();
 builder.Services.AddHttpContextAccessor();
 
 // ----------------------------
@@ -39,11 +41,14 @@ builder.Services.AddScoped(typeof(ICrudRepository<>), typeof(CrudRepository<>));
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddControllers(options => { options.Filters.Add<ValidationFilter>(); });
-
-
 builder.Services.AddValidatorsFromAssemblyContaining<PaymentRequestDtoValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<VerifyPaymentRequestDtoValidator>();
+builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddHttpClient("RentalOrderService", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["RentalOrderService"]!);
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

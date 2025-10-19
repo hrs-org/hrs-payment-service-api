@@ -34,25 +34,32 @@ public class PaymentController : ControllerBase
         return Ok(ApiResponse<object>.OkResponse(null, "Payment verified successfully"));
     }
 
-    [HttpPost("TestDB")]
-    public async Task<IActionResult> TestDB(int orderId, long amount, string sessionId)
+    [HttpGet("{ID}")]
+    public async Task<IActionResult> MongoDBGET(string ID)
     {
-        var type = PaymentType.Stripe;
-        var paymentID = await _paymentService.TestMongoDB(orderId, amount, sessionId, type);
-        return Ok(ApiResponse<object>.OkResponse(paymentID, "Payment verified successfully"));
-    }
-
-    [HttpPost("TestDBGET")]
-    public async Task<IActionResult> TestDBGET(string orderId)
-    {
-        var payment = await _paymentService.TestMongoDBGET(orderId);
+        var payment = await _paymentService.MongoDBGET(ID);
         return Ok(ApiResponse<object>.OkResponse(payment, "GET Payment successfully"));
     }
 
-    [HttpPost("TestDBGETByOrderID")]
-    public async Task<IActionResult> TestDBGETByOrderID(int Id)
+    [HttpGet("orders/{Id}")]
+    public async Task<IActionResult> GETByOrderID(int Id)
     {
-        var payment = await _paymentService.TestMongoDBGETbyOrderID(Id);
+        var payment = await _paymentService.GETbyOrderID(Id);
         return Ok(ApiResponse<object>.OkResponse(payment, "GET Payment successfully"));
     }
+
+    [HttpPost]
+    public async Task<IActionResult> AddAsyncPayment([FromBody] CreatePaymentRequestDto request)
+    {
+        var payment = await _paymentService.AddAsyncPayment(request.OrderId, request.Amount, request.SessionId, request.PaymentType);
+        return Ok(ApiResponse<object>.OkResponse(payment, "Payment added successfully"));
+    }
+
+    [HttpPut]
+    public async Task<IActionResult> UpdateAsyncPayment([FromBody] CreatePaymentRequestDto request)
+    {
+        var payment = await _paymentService.UpdateAsyncPayment(request.OrderId, request.Amount, request.SessionId, request.PaymentType);
+        return Ok(ApiResponse<object>.OkResponse(payment, "Payment updated successfully"));
+    }
+
 }
