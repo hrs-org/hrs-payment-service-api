@@ -123,7 +123,7 @@ public class PaymentService : IPaymentService
         await _paymentRepository.AddAsync(payment);
     }
 
-    public async Task<String> AddAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType)
+    public async Task<String> AddAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
     {
 
         var user = await _userContextService.GetUserAsync();
@@ -135,7 +135,7 @@ public class PaymentService : IPaymentService
             Amount = (decimal)(amount ?? 0) / 100,
             PaymentType = paymentType,
             PaymentDate = DateTime.UtcNow,
-            Status = PaymentStatus.Completed,
+            Status = status,
             CreatedById = user.Id,
             CreatedAt = DateTime.UtcNow,
             UpdatedById = user.Id,
@@ -147,7 +147,7 @@ public class PaymentService : IPaymentService
         return payment.Id;
     }
 
-    public async Task<String> UpdateAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType)
+    public async Task<String> UpdateAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
     {
 
         var user = await _userContextService.GetUserAsync();
@@ -159,7 +159,7 @@ public class PaymentService : IPaymentService
         payment.Amount = (decimal)(amount ?? 0) / 100;
         payment.PaymentType = paymentType;
         payment.PaymentDate = DateTime.UtcNow;
-        payment.Status = PaymentStatus.Completed;
+        payment.Status = status;
         payment.UpdatedById = user.Id;
         payment.UpdatedAt = DateTime.UtcNow;
 

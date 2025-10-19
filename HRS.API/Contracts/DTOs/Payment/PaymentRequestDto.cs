@@ -20,5 +20,6 @@ public class CreatePaymentRequestDto
     [Required] public int OrderId { get; set; }
     [Required] public long Amount { get; set; }
     [Required] public string? SessionId { get; set; }
-    [Required] [JsonConverter(typeof(JsonStringEnumConverter))] public PaymentType PaymentType { get; set; }
+    [Required][JsonConverter(typeof(JsonStringEnumConverter))] public PaymentType PaymentType { get; set; }
+    [Required][JsonConverter(typeof(JsonStringEnumConverter))] public PaymentStatus Status { get; set; }
 }

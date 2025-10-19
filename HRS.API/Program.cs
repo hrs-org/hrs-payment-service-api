@@ -43,7 +43,6 @@ builder.Services.AddScoped(typeof(ICrudRepository<>), typeof(CrudRepository<>));
 builder.Services.AddControllers(options => { options.Filters.Add<ValidationFilter>(); });
 builder.Services.AddValidatorsFromAssemblyContaining<PaymentRequestDtoValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<VerifyPaymentRequestDtoValidator>();
-builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddHttpClient("RentalOrderService", client =>
 {
