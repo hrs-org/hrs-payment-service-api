@@ -183,7 +183,7 @@ public class PaymentService : IPaymentService
 
         var data = await _paymentRepository.GetByRentalOrderIdAsync(id);
 
-        if(data==null)throw new InvalidOperationException("ERROR");
+        if (data == null) throw new InvalidOperationException("ERROR");
 
         return data;
     }

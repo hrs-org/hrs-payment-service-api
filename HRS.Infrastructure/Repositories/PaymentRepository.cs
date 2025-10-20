@@ -10,7 +10,7 @@ public class PaymentRepository : CrudRepository<Payment>, IPaymentRepository
     public PaymentRepository(MongoContext context)
         : base(context, "Payments")
     {
-         _payments = context.Payments;
+        _payments = context.Payments;
 
         var indexKeys = Builders<Payment>.IndexKeys.Ascending(p => p.RentalOrderId);
         var indexModel = new CreateIndexModel<Payment>(indexKeys, new CreateIndexOptions { Unique = true });
