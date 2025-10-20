@@ -2,6 +2,7 @@ using HRS.API.Services.Interfaces;
 using HRS.Domain.Entities;
 using HRS.Domain.Enums;
 using HRS.Domain.Interfaces;
+using HRS.Shared.Core.Interfaces;
 using Stripe;
 using Stripe.Checkout;
 
@@ -11,20 +12,21 @@ public class PaymentService : IPaymentService
 {
     private readonly IAppConfiguration _appConfiguration;
     private readonly IPaymentRepository _paymentRepository;
-    private readonly IRentalOrderService _rentalOrderService;
     private readonly SessionService _sessionService;
     private readonly IUserContextService _userContextService;
+
+    private readonly HttpClient _httpClient;
 
     public PaymentService(
         IUserContextService userContextService,
         IAppConfiguration appConfiguration,
-        IRentalOrderService rentalOrderService,
+        IHttpClientFactory httpClientFactory,
         IPaymentRepository paymentRepository,
         SessionService? sessionService = null)
     {
         _userContextService = userContextService;
         _appConfiguration = appConfiguration;
-        _rentalOrderService = rentalOrderService;
+        _httpClient = httpClientFactory.CreateClient("RentalOrderService");
         _paymentRepository = paymentRepository;
 
         // Use the provided service for testing, fallback to real service for production
@@ -64,8 +66,9 @@ public class PaymentService : IPaymentService
         };
 
         var session = await _sessionService.CreateAsync(options);
-
-        await _rentalOrderService.AssignStripeSessionIdAsync(orderId, session.Id);
+        // Console.WriteLine("Stripe Session ID: " + session.Id);
+        var response = await _httpClient.PostAsJsonAsync("/api/orders/assign-stripe-sessionid", new { orderId, sessionId = session.Id });
+        response.EnsureSuccessStatusCode();
 
         return session;
     }
@@ -88,7 +91,13 @@ public class PaymentService : IPaymentService
             throw new InvalidOperationException("Payment not completed.");
 
         if (session.Status == "complete")
-            await _rentalOrderService.ApprovePaymentAsync(sessionId, session.AmountTotal);
+        {
+            // await _rentalOrderService.ApprovePaymentAsync(sessionId, session.AmountTotal);
+            await _httpClient.PostAsJsonAsync($"/api/orders/{sessionId}/approve-payment", new { sessionId, amount = session.AmountTotal });
+            await Task.CompletedTask;
+        }
+
+
     }
 
     public async Task RecordPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType)
@@ -109,9 +118,73 @@ public class PaymentService : IPaymentService
             PaymentType = paymentType,
             PaymentDate = DateTime.UtcNow,
             Status = PaymentStatus.Completed,
-            CreatedBy = user,
+            CreatedById = user.Id,
             CreatedAt = DateTime.UtcNow
         };
         await _paymentRepository.AddAsync(payment);
+    }
+
+    public async Task<String> AddAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
+    {
+
+        var user = await _userContextService.GetUserAsync();
+
+        var payment = new Payment
+        {
+            RentalOrderId = orderId,
+            StripeSessionId = sessionId,
+            Amount = (decimal)(amount ?? 0) / 100,
+            PaymentType = paymentType,
+            PaymentDate = DateTime.UtcNow,
+            Status = status,
+            CreatedById = user.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedById = user.Id,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _paymentRepository.AddAsync(payment);
+        if (payment.Id == null) throw new InvalidOperationException("Null id");
+
+        return payment.Id;
+    }
+
+    public async Task<String> UpdateAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
+    {
+
+        var user = await _userContextService.GetUserAsync();
+        var payment = await _paymentRepository.GetByRentalOrderIdAsync(orderId);
+
+        if (payment == null) throw new InvalidOperationException("Payment not found");
+        payment.RentalOrderId = orderId;
+        payment.StripeSessionId = sessionId;
+        payment.Amount = (decimal)(amount ?? 0) / 100;
+        payment.PaymentType = paymentType;
+        payment.PaymentDate = DateTime.UtcNow;
+        payment.Status = status;
+        payment.UpdatedById = user.Id;
+        payment.UpdatedAt = DateTime.UtcNow;
+
+        await _paymentRepository.UpdateAsync(payment, payment.Id);
+        return payment.Id;
+    }
+
+    public async Task<Payment> MongoDBGet(string id)
+    {
+
+        var data = await _paymentRepository.GetByIdAsync(id);
+
+        if (data == null) throw new InvalidOperationException("ERROR");
+
+        return data;
+    }
+
+    public async Task<Payment> GetByOrderId(int id)
+    {
+
+        var data = await _paymentRepository.GetByRentalOrderIdAsync(id);
+
+        if (data == null) throw new InvalidOperationException("ERROR");
+
+        return data;
     }
 }

@@ -1,19 +1,26 @@
 using HRS.Domain.Entities;
 using HRS.Domain.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 
 namespace HRS.Infrastructure.Repositories;
 
 public class PaymentRepository : CrudRepository<Payment>, IPaymentRepository
 {
-    public PaymentRepository(AppDbContext db) : base(db)
+    private readonly IMongoCollection<Payment> _payments;
+    public PaymentRepository(MongoContext context)
+        : base(context, "Payments")
     {
+        _payments = context.Payments;
+
+        var indexKeys = Builders<Payment>.IndexKeys.Ascending(p => p.RentalOrderId);
+        var indexModel = new CreateIndexModel<Payment>(indexKeys, new CreateIndexOptions { Unique = true });
+        _payments.Indexes.CreateOne(indexModel);
     }
 
     public async Task<Payment?> GetByRentalOrderIdAsync(int rentalOrderId)
     {
-        return await _db.Payments
-            .Where(p => p.RentalOrderId == rentalOrderId)
-            .FirstOrDefaultAsync();
+        var filter = Builders<Payment>.Filter.Eq(p => p.RentalOrderId, rentalOrderId);
+        return await _collection.Find(filter).FirstOrDefaultAsync();
     }
 }
+

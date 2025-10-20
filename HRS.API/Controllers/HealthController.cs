@@ -1,11 +1,10 @@
-using HRS.API.Contracts.DTOs;
-using HRS.API.Contracts.DTOs.Health;
+using HRS.Shared.Core.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HRS.API.Controllers;
 
 [ApiController]
-[Route("api/health")]
+[Route("health")]
 public class HealthController : ControllerBase
 {
     [HttpGet]
