@@ -6,7 +6,7 @@ metadata:
     labels:
         app: hrs-payment-service
 spec:
-    replicas: 2
+    replicas: 1
     selector:
         matchLabels:
             app: hrs-payment-service
@@ -52,11 +52,11 @@ spec:
                         value: "/payment/verify"
                   resources:
                       requests:
+                          memory: "128Mi"
+                          cpu: "100m"
+                      limits:
                           memory: "256Mi"
                           cpu: "250m"
-                      limits:
-                          memory: "512Mi"
-                          cpu: "500m"
                   livenessProbe:
                       httpGet:
                           path: /health
