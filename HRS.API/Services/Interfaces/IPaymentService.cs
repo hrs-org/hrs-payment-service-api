@@ -11,7 +11,7 @@ public interface IPaymentService
 
     Task RecordPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType);
     Task<String> AddAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status);
-    Task<Payment> MongoDBGET(string ID);
-    Task<Payment> GETbyOrderID(int ID);
+    Task<Payment> MongoDBGet(string id);
+    Task<Payment> GetByOrderId(int id);
     Task<String> UpdateAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status);
 }

@@ -34,17 +34,17 @@ public class PaymentController : ControllerBase
         return Ok(ApiResponse<object>.OkResponse(null, "Payment verified successfully"));
     }
 
-    [HttpGet("{ID}")]
-    public async Task<IActionResult> MongoDBGET(string ID)
+    [HttpGet("{id}")]
+    public async Task<IActionResult> MongoDBGet(string id)
     {
-        var payment = await _paymentService.MongoDBGET(ID);
+        var payment = await _paymentService.MongoDBGet(id);
         return Ok(ApiResponse<object>.OkResponse(payment, "GET Payment successfully"));
     }
 
-    [HttpGet("orders/{Id}")]
-    public async Task<IActionResult> GETByOrderID(int Id)
+    [HttpGet("orders/{id}")]
+    public async Task<IActionResult> GetByOrderId(int id)
     {
-        var payment = await _paymentService.GETbyOrderID(Id);
+        var payment = await _paymentService.GetByOrderId(id);
         return Ok(ApiResponse<object>.OkResponse(payment, "GET Payment successfully"));
     }
 

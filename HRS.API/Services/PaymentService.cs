@@ -167,20 +167,20 @@ public class PaymentService : IPaymentService
         return payment.Id;
     }
 
-    public async Task<Payment> MongoDBGET(string ID)
+    public async Task<Payment> MongoDBGet(string id)
     {
 
-        var data = await _paymentRepository.GetByIdAsync(ID);
+        var data = await _paymentRepository.GetByIdAsync(id);
 
         if (data == null) throw new InvalidOperationException("ERROR");
 
         return data;
     }
 
-    public async Task<Payment> GETbyOrderID(int ID)
+    public async Task<Payment> GetByOrderId(int id)
     {
 
-        var data = await _paymentRepository.GetByRentalOrderIdAsync(ID);
+        var data = await _paymentRepository.GetByRentalOrderIdAsync(id);
 
         if(data==null)throw new InvalidOperationException("ERROR");
 
