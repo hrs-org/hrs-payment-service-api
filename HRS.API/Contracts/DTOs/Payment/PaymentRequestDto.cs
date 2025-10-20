@@ -23,3 +23,10 @@ public class CreatePaymentRequestDto
     [Required][JsonConverter(typeof(JsonStringEnumConverter))] public PaymentType PaymentType { get; set; }
     [Required][JsonConverter(typeof(JsonStringEnumConverter))] public PaymentStatus Status { get; set; }
 }
+
+public class ApprovePaymentRequestDto
+{
+    [Required] public string? SessionId { get; set; }
+    [Required] public long Amount { get; set; }
+
+}
