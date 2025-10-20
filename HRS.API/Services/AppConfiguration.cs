@@ -12,13 +12,14 @@ public class AppConfiguration : IAppConfiguration
         Setup();
     }
 
-    public string FrontendUrl { get; set; } = "http://localhost:4200/";
+    public string FrontendUrl { get; set; } = string.Empty;
     public string StripeApiKey { get; set; } = string.Empty;
     public string PaymentReturnPath { get; set; } = string.Empty;
 
     private void Setup()
     {
-        StripeApiKey = _configuration["Payment:Secretkey"] ?? "";
-        PaymentReturnPath = FrontendUrl + (_configuration["Payment:ReturnUrl"] ?? "");
+        FrontendUrl = _configuration["FrontendUrl"] ?? "";
+        StripeApiKey = _configuration["Payment:Stripe:ApiKey"] ?? "";
+        PaymentReturnPath = FrontendUrl + (_configuration["Payment:ReturnPath"] ?? "");
     }
 }

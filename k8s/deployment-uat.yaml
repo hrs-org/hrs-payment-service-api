@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: hrs-payment-service
+    namespace: payments
+    labels:
+        app: hrs-payment-service
+spec:
+    replicas: 2
+    selector:
+        matchLabels:
+            app: hrs-payment-service
+    template:
+        metadata:
+            labels:
+                app: hrs-payment-service
+        spec:
+            containers:
+                - name: hrs-payment-service
+                  image: __ACR_NAME__.azurecr.io/hrs-payment-service:__IMAGE_TAG__
+                  imagePullPolicy: Always
+                  ports:
+                      - containerPort: 8080
+                        name: http
+                  env:
+                      - name: ASPNETCORE_ENVIRONMENT
+                        value: "Production"
+                      - name: ASPNETCORE_URLS
+                        value: "http://+:8080"
+                      # MongoDB Configuration
+                      - name: ConnectionStrings__DefaultConnection
+                        value: "__MONGODB_CONNECTION_STRING__/__MONGODB_DATABASE_NAME__"
+                      # JWT Configuration
+                      - name: Jwt__Key
+                        value: "__JWT_SECRET_KEY__"
+                      - name: Jwt__Issuer
+                        value: "__JWT_ISSUER__"
+                      - name: Jwt__Audience
+                        value: "__JWT_AUDIENCE__"
+                      # CORS Configuration
+                      - name: AllowedOrigins
+                        value: "__ALLOWED_ORIGINS__"
+                      # Service Discovery
+                      - name: RentalOrderService
+                        value: "__RENTAL_ORDER_SERVICE__"
+                      - name: FrontendUrl
+                        value: "__FRONTEND_URL__"
+                      # Payment Configuration
+                      - name: Payment__Stripe__ApiKey
+                        value: "__STRIPE_API_KEY__"
+                      - name: Payment__ReturnPath
+                        value: "/payment/verify"
+                  resources:
+                      requests:
+                          memory: "256Mi"
+                          cpu: "250m"
+                      limits:
+                          memory: "512Mi"
+                          cpu: "500m"
+                  livenessProbe:
+                      httpGet:
+                          path: /health
+                          port: 8080
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      timeoutSeconds: 5
+                      failureThreshold: 3
+                  readinessProbe:
+                      httpGet:
+                          path: /health
+                          port: 8080
+                      initialDelaySeconds: 15
+                      periodSeconds: 5
+                      timeoutSeconds: 3
+                      failureThreshold: 2
+            imagePullSecrets:
+                - name: acr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: hrs-payment-service
+    namespace: payments
+    labels:
+        app: hrs-payment-service
+spec:
+    type: ClusterIP
+    ports:
+        - port: 80
+          targetPort: 8080
+          protocol: TCP
+          name: http
+    selector:
+        app: hrs-payment-service

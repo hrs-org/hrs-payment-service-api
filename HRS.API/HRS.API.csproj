@@ -37,7 +37,6 @@
     <ItemGroup>
         <ProjectReference Include="..\HRS.Infrastructure\HRS.Infrastructure.csproj" />
         <ProjectReference Include="..\HRS.Domain\HRS.Domain.csproj" />
-        <ProjectReference Include="..\HRS.Migrations\HRS.Migrations.csproj" />
     </ItemGroup>
 
 </Project>
