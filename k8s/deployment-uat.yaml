@@ -29,7 +29,7 @@ spec:
                         value: "http://+:8080"
                       # MongoDB Configuration
                       - name: ConnectionStrings__DefaultConnection
-                        value: "__MONGODB_CONNECTION_STRING__/__MONGODB_DATABASE_NAME__"
+                        value: "__MONGODB_CONNECTION_STRING__"
                       # JWT Configuration
                       - name: Jwt__Key
                         value: "__JWT_SECRET_KEY__"
