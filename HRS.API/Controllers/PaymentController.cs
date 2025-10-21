@@ -10,7 +10,7 @@ namespace HRS.API.Controllers;
 
 [ApiController]
 [Route("api/payments")]
-// [Authorize]
+[Authorize]
 public class PaymentController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
