@@ -42,7 +42,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet("orders/{id}")]
-    public async Task<IActionResult> GetByOrderId(int id)
+    public async Task<IActionResult> GetByOrderId(string id)
     {
         var payment = await _paymentService.GetByOrderId(id);
         return Ok(ApiResponse<object>.OkResponse(payment, "GET Payment successfully"));

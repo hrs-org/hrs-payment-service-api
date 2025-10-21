@@ -11,7 +11,7 @@ public class Payment
     public string Id { get; set; } = ObjectId.GenerateNewId().ToString();
 
     [BsonElement("rentalOrderId")]
-    public int RentalOrderId { get; set; }
+    public string RentalOrderId { get; set; } = string.Empty;
 
     [BsonElement("amount")]
     public decimal Amount { get; set; }
