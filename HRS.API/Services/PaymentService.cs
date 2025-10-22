@@ -66,8 +66,7 @@ public class PaymentService : IPaymentService
         };
 
         var session = await _sessionService.CreateAsync(options);
-        // Console.WriteLine("Stripe Session ID: " + session.Id);
-        var response = await _httpClient.PostAsJsonAsync("/api/orders/assign-stripe-sessionid", new { orderId, sessionId = session.Id });
+        var response = await _httpClient.PostAsJsonAsync($"/api/orders/assign-stripe-sessionid/{orderId}", new { orderId, sessionId = session.Id });
         response.EnsureSuccessStatusCode();
 
         return session;
@@ -92,7 +91,6 @@ public class PaymentService : IPaymentService
 
         if (session.Status == "complete")
         {
-            // await _rentalOrderService.ApprovePaymentAsync(sessionId, session.AmountTotal);
             await _httpClient.PostAsJsonAsync($"/api/orders/{sessionId}/approve-payment", new { sessionId, amount = session.AmountTotal });
             await Task.CompletedTask;
         }
