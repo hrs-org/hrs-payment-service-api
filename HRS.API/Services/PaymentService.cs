@@ -67,7 +67,7 @@ public class PaymentService : IPaymentService
 
         var session = await _sessionService.CreateAsync(options);
         // Console.WriteLine("Stripe Session ID: " + session.Id);
-        var response = await _httpClient.PostAsJsonAsync("/api/orders/assign-stripe-sessionid", new { orderId, sessionId = session.Id });
+        var response = await _httpClient.PostAsJsonAsync($"/api/orders/assign-stripe-sessionid/{orderId}", new { orderId, sessionId = session.Id });
         response.EnsureSuccessStatusCode();
 
         return session;
