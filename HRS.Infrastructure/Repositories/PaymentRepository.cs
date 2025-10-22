@@ -17,7 +17,7 @@ public class PaymentRepository : CrudRepository<Payment>, IPaymentRepository
         _payments.Indexes.CreateOne(indexModel);
     }
 
-    public async Task<Payment?> GetByRentalOrderIdAsync(int rentalOrderId)
+    public async Task<Payment?> GetByRentalOrderIdAsync(string rentalOrderId)
     {
         var filter = Builders<Payment>.Filter.Eq(p => p.RentalOrderId, rentalOrderId);
         return await _collection.Find(filter).FirstOrDefaultAsync();

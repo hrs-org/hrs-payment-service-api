@@ -23,7 +23,7 @@ public class PaymentControllerTests
     public async Task GetAvailability_ReturnsOkWithSession()
     {
         // Arrange
-        var request = new PaymentRequestDto { OrderId = 1, Amount = 100 };
+        var request = new PaymentRequestDto { OrderId = "1", Amount = 100 };
         var session = new Session { Id = "sess_123" };
         _service.CreatePayments(request.OrderId, request.Amount).Returns(session);
 

@@ -6,7 +6,7 @@ namespace HRS.API.Contracts.DTOs.Payment;
 
 public class PaymentRequestDto
 {
-    [Required] public int OrderId { get; set; }
+    [Required] public string OrderId { get; set; } = string.Empty;
     [Required] public double Amount { get; set; }
 }
 
@@ -17,7 +17,7 @@ public class VerifyPaymentRequestDto
 
 public class CreatePaymentRequestDto
 {
-    [Required] public int OrderId { get; set; }
+    [Required] public string OrderId { get; set; } = string.Empty;
     [Required] public long Amount { get; set; }
     [Required] public string? SessionId { get; set; }
     [Required][JsonConverter(typeof(JsonStringEnumConverter))] public PaymentType PaymentType { get; set; }

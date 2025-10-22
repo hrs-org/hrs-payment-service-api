@@ -4,5 +4,5 @@ namespace HRS.Domain.Interfaces;
 
 public interface IPaymentRepository : ICrudRepository<Payment>
 {
-    Task<Payment?> GetByRentalOrderIdAsync(int rentalOrderId);
+    Task<Payment?> GetByRentalOrderIdAsync(string rentalOrderId);
 }

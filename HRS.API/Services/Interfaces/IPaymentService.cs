@@ -6,12 +6,12 @@ namespace HRS.API.Services.Interfaces;
 
 public interface IPaymentService
 {
-    Task<Session> CreatePayments(int orderId, double amount);
+    Task<Session> CreatePayments(string orderId, double amount);
     Task VerifyPaymentAsync(string clientSecret);
 
-    Task RecordPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType);
-    Task<String> AddAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status);
+    Task RecordPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType);
+    Task<String> AddAsyncPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status);
     Task<Payment> MongoDBGet(string id);
-    Task<Payment> GetByOrderId(int id);
-    Task<String> UpdateAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status);
+    Task<Payment> GetByOrderId(string orderId);
+    Task<String> UpdateAsyncPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status);
 }

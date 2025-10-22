@@ -33,7 +33,7 @@ public class PaymentService : IPaymentService
         _sessionService = sessionService ?? new SessionService();
     }
 
-    public async Task<Session> CreatePayments(int orderId, double amount)
+    public async Task<Session> CreatePayments(string orderId, double amount)
     {
         StripeConfiguration.ApiKey = _appConfiguration.StripeApiKey;
         var user = await _userContextService.GetUserAsync();
@@ -100,7 +100,7 @@ public class PaymentService : IPaymentService
 
     }
 
-    public async Task RecordPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType)
+    public async Task RecordPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType)
     {
         var existingPayments = await _paymentRepository
             .GetByRentalOrderIdAsync(orderId);
@@ -124,7 +124,7 @@ public class PaymentService : IPaymentService
         await _paymentRepository.AddAsync(payment);
     }
 
-    public async Task<String> AddAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
+    public async Task<String> AddAsyncPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
     {
 
         var user = await _userContextService.GetUserAsync();
@@ -148,7 +148,7 @@ public class PaymentService : IPaymentService
         return payment.Id;
     }
 
-    public async Task<String> UpdateAsyncPayment(int orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
+    public async Task<String> UpdateAsyncPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
     {
 
         var user = await _userContextService.GetUserAsync();
@@ -178,10 +178,10 @@ public class PaymentService : IPaymentService
         return data;
     }
 
-    public async Task<Payment> GetByOrderId(int id)
+    public async Task<Payment> GetByOrderId(string orderId)
     {
 
-        var data = await _paymentRepository.GetByRentalOrderIdAsync(id);
+        var data = await _paymentRepository.GetByRentalOrderIdAsync(orderId);
 
         if (data == null) throw new InvalidOperationException("ERROR");
 

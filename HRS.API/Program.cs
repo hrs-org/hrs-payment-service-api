@@ -1,6 +1,7 @@
 using System.Text;
 using FluentValidation;
 using HRS.API.Filters;
+using HRS.API.Handlers;
 using HRS.API.Middleware;
 using HRS.API.Services;
 using HRS.API.Services.Interfaces;
@@ -21,6 +22,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAppConfiguration, AppConfiguration>();
 builder.Services.AddScoped<IUserContextService, UserContextService>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<AuthorizationHeaderHandler>();
 
 // ----------------------------
 // IConfiguration & MongoClient
@@ -47,7 +49,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<VerifyPaymentRequestDtoVali
 builder.Services.AddHttpClient("RentalOrderService", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["RentalOrderService"]!);
-});
+}).AddHttpMessageHandler<AuthorizationHeaderHandler>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -83,6 +85,23 @@ builder.Services.AddSwaggerGen(c =>
 
 
 builder.Services.AddAutoMapper(cfg => { }, typeof(Program));
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+            )
+        };
+    });
+
 
 builder.Services.AddCors(options =>
 {
