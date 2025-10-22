@@ -176,13 +176,10 @@ public class PaymentService : IPaymentService
         return data;
     }
 
-    public async Task<Payment> GetByOrderId(string orderId)
+    public async Task<Payment?> GetByOrderId(string orderId)
     {
 
         var data = await _paymentRepository.GetByRentalOrderIdAsync(orderId);
-
-        if (data == null) throw new InvalidOperationException("ERROR");
-
         return data;
     }
 }
