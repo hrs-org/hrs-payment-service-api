@@ -91,11 +91,10 @@ public class PaymentService : IPaymentService
 
         if (session.Status == "complete")
         {
-            await _httpClient.PostAsJsonAsync($"/api/orders/{sessionId}/approve-payment", new { sessionId, amount = session.AmountTotal });
+            var res = await _httpClient.PostAsJsonAsync($"/api/orders/{sessionId}/approve-payment", new { sessionId, amount = session.AmountTotal });
+            res.EnsureSuccessStatusCode();
             await Task.CompletedTask;
         }
-
-
     }
 
     public async Task RecordPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType)
