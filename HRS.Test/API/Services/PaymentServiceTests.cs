@@ -1,8 +1,4 @@
-using System;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
 using FluentAssertions;
 using HRS.API.Services;
 using HRS.API.Services.Interfaces;
@@ -13,7 +9,6 @@ using HRS.Shared.Core.Dtos;
 using HRS.Shared.Core.Interfaces;
 using NSubstitute;
 using Stripe.Checkout;
-using Xunit;
 
 namespace HRS.Test.API.Services;
 
@@ -23,7 +18,6 @@ public class PaymentServiceTests
     private readonly IPaymentRepository _paymentRepo;
     private readonly IUserContextService _userContext;
     private readonly SessionService _sessionService;
-    private readonly HttpClient _httpClient;
     private readonly PaymentService _service;
 
     public PaymentServiceTests()
@@ -34,13 +28,13 @@ public class PaymentServiceTests
         _sessionService = Substitute.For<SessionService>();
 
         var handler = new HttpMessageHandlerStub();
-        _httpClient = new HttpClient(handler)
+        var httpClient = new HttpClient(handler)
         {
             BaseAddress = new Uri("http://localhost")
         };
 
         var httpFactory = Substitute.For<IHttpClientFactory>();
-        httpFactory.CreateClient("RentalOrderService").Returns(_httpClient);
+        httpFactory.CreateClient("RentalOrderService").Returns(httpClient);
 
         _service = new PaymentService(_userContext, _appConfig, httpFactory, _paymentRepo, _sessionService);
     }
@@ -92,7 +86,7 @@ public class PaymentServiceTests
         // Arrange
         _appConfig.StripeApiKey.Returns("sk_test");
 
-        var session = new Stripe.Checkout.Session
+        var session = new Session
         {
             Id = "sess_123",
             PaymentStatus = "unpaid", // Not "paid"
@@ -111,7 +105,7 @@ public class PaymentServiceTests
         // Arrange
         _appConfig.StripeApiKey.Returns("sk_test");
 
-        var session = new Stripe.Checkout.Session
+        var session = new Session
         {
             Id = "sess_123",
             PaymentStatus = "paid",
@@ -139,7 +133,7 @@ public class PaymentServiceTests
     public async Task AddAsyncPayment_AddsPayment_AndReturnsId()
     {
         // Arrange
-        var user = new UserResponseDto { Id = 1, FirstName = "Feri", LastName = "Smith", Role = "Admin", Email = "test@example.com" }; ;
+        var user = new UserResponseDto { Id = 1, FirstName = "Feri", LastName = "Smith", Role = "Admin", Email = "test@example.com" };
         _userContext.GetUserAsync().Returns(Task.FromResult(user));
 
         Payment? savedPayment = null;
@@ -179,9 +173,9 @@ public class PaymentServiceTests
         existing.Status.Should().Be(PaymentStatus.Completed);
     }
     // Stub HttpMessageHandler to avoid real HTTP requests
-    internal class HttpMessageHandlerStub : HttpMessageHandler
+    private class HttpMessageHandlerStub : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
         }
@@ -208,7 +202,7 @@ public class PaymentServiceRepositoryTests
             Substitute.For<IAppConfiguration>(),
             Substitute.For<IHttpClientFactory>(),
             _paymentRepo,
-            Substitute.For<Stripe.Checkout.SessionService>()
+            Substitute.For<SessionService>()
         );
     }
 
@@ -217,7 +211,7 @@ public class PaymentServiceRepositoryTests
     {
         // Arrange
         var payment = new Payment { Id = "pay_1" };
-        _paymentRepo.GetByIdAsync("pay_1").Returns(Task.FromResult(payment));
+        _paymentRepo.GetByIdAsync("pay_1")!.Returns(Task.FromResult(payment));
 
         // Act
         var result = await _service.MongoDBGet("pay_1");
@@ -230,7 +224,7 @@ public class PaymentServiceRepositoryTests
     public async Task MongoDBGet_ThrowsInvalidOperation_WhenNotFound()
     {
         // Arrange
-        _paymentRepo.GetByIdAsync("pay_1").Returns(Task.FromResult<Payment>(null));
+        _paymentRepo.GetByIdAsync("pay_1")!.Returns(Task.FromResult<Payment>(null!));
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.MongoDBGet("pay_1"));
@@ -241,7 +235,7 @@ public class PaymentServiceRepositoryTests
     {
         // Arrange
         var payment = new Payment { RentalOrderId = "order_1" };
-        _paymentRepo.GetByRentalOrderIdAsync("order_1").Returns(Task.FromResult(payment));
+        _paymentRepo.GetByRentalOrderIdAsync("order_1")!.Returns(Task.FromResult(payment));
 
         // Act
         var result = await _service.GetByOrderId("order_1");
@@ -254,7 +248,7 @@ public class PaymentServiceRepositoryTests
     public async Task GetByOrderId_ReturnsNull_WhenNotFound()
     {
         // Arrange
-        _paymentRepo.GetByRentalOrderIdAsync("order_1").Returns(Task.FromResult<Payment>(null));
+        _paymentRepo.GetByRentalOrderIdAsync("order_1")!.Returns(Task.FromResult<Payment>(null!));
 
         // Act
         var result = await _service.GetByOrderId("order_1");
@@ -267,7 +261,7 @@ public class PaymentServiceRepositoryTests
     public async Task RecordPayment_AddsPayment_WhenNotExists()
     {
         // Arrange
-        _paymentRepo.GetByRentalOrderIdAsync("order_1").Returns(Task.FromResult<Payment>(null));
+        _paymentRepo.GetByRentalOrderIdAsync("order_1")!.Returns(Task.FromResult<Payment>(null!));
 
         var user = new UserResponseDto { Id = 42, FirstName = "Feri", LastName = "Smith", Role = "Admin", Email = "test@example.com" };
         _userContext.GetUserAsync().Returns(Task.FromResult(user));
