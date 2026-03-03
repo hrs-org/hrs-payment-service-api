@@ -27,6 +27,12 @@ public class UserContextService : IUserContextService
         return int.TryParse(userIdClaim, out var userId) ? userId : 0;
     }
 
+    public int GetStoreId()
+    {
+        var storeIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("storeId")?.Value;
+        return int.TryParse(storeIdClaim, out var storeId) ? storeId : 0;
+    }
+
     public Task<UserResponseDto> GetUserAsync()
     {
         var userId = GetUserId();
