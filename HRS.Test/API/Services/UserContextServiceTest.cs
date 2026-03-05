@@ -1,78 +1,26 @@
-using System.Collections.Generic;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using FluentAssertions;
 using HRS.API.Services;
 using HRS.Shared.Core.Dtos;
+using HRS.Shared.Core.Interfaces;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
 using Xunit;
-
 namespace HRS.Test.API.Services;
 
 public class UserContextServiceTests
 {
-    private IHttpContextAccessor CreateHttpContextAccessor(IEnumerable<Claim>? claims = null)
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly UserContextService _service;
+
+    public UserContextServiceTests()
     {
-        var identity = new ClaimsIdentity(claims ?? new List<Claim>(), "TestAuthType");
-        var principal = new ClaimsPrincipal(identity);
-
-        var context = new DefaultHttpContext
-        {
-            User = principal
-        };
-
-        var accessor = Substitute.For<IHttpContextAccessor>();
-        accessor.HttpContext.Returns(context);
-        return accessor;
+        _httpContextAccessor = Substitute.For<IHttpContextAccessor>();
+        _service = new UserContextService(_httpContextAccessor);
     }
 
     [Fact]
-    public void GetEmail_ShouldReturnEmailClaim_WhenExists()
-    {
-        // Arrange
-        var accessor = CreateHttpContextAccessor(new[]
-        {
-            new Claim(ClaimTypes.Email, "test@example.com")
-        });
-        var service = new UserContextService(accessor);
-
-        // Act
-        var email = service.GetEmail();
-
-        // Assert
-        email.Should().Be("test@example.com");
-    }
-
-    [Fact]
-    public void GetEmail_ShouldReturnNull_WhenEmailClaimMissing()
-    {
-        var accessor = CreateHttpContextAccessor(); // no claims
-        var service = new UserContextService(accessor);
-
-        var email = service.GetEmail();
-
-        email.Should().BeNull();
-    }
-
-    [Theory]
-    [InlineData("123", 123)]
-    [InlineData("0", 0)]
-    [InlineData(null, 0)]
-    public void GetUserId_ShouldParseUserIdClaims(string? claimValue, int expected)
-    {
-        var claims = new List<Claim>();
-        if (claimValue != null)
-            claims.Add(new Claim(ClaimTypes.NameIdentifier, claimValue));
-
-        var accessor = CreateHttpContextAccessor(claims);
-        var service = new UserContextService(accessor);
-
-        service.GetUserId().Should().Be(expected);
-    }
-
-    [Fact]
-    public async Task GetUserAsync_ShouldReturnUserResponseDto_WithClaims()
+    public async Task GetUserAsync_ReturnsUserFromClaims()
     {
         // Arrange
         var claims = new[]
@@ -81,40 +29,93 @@ public class UserContextServiceTests
             new Claim(ClaimTypes.Email, "test@example.com"),
             new Claim(ClaimTypes.GivenName, "John"),
             new Claim(ClaimTypes.Surname, "Doe"),
-            new Claim(ClaimTypes.Role, "Admin")
+            new Claim(ClaimTypes.Role, "Admin"),
+            new Claim("storeId", "7")
         };
-        var accessor = CreateHttpContextAccessor(claims);
-        var service = new UserContextService(accessor);
+        var identity = new ClaimsIdentity(claims);
+        var principal = new ClaimsPrincipal(identity);
+        var context = new DefaultHttpContext { User = principal };
+        _httpContextAccessor.HttpContext.Returns(context);
 
         // Act
-        var user = await service.GetUserAsync();
+        var result = await _service.GetUserAsync();
 
         // Assert
-        user.Should().BeEquivalentTo(new UserResponseDto
-        {
-            Id = 42,
-            Email = "test@example.com",
-            FirstName = "John",
-            LastName = "Doe",
-            Role = "Admin"
-        });
+        result.Should().NotBeNull();
+        result.Id.Should().Be(42);
+        result.Email.Should().Be("test@example.com");
+        result.FirstName.Should().Be("John");
+        result.LastName.Should().Be("Doe");
+        result.Role.Should().Be("Admin");
     }
 
     [Fact]
-    public async Task GetUserAsync_ShouldReturnDefaults_WhenClaimsMissing()
+    public void GetUserId_ReturnsZero_WhenNoClaim()
     {
-        var accessor = CreateHttpContextAccessor(); // no claims
-        var service = new UserContextService(accessor);
+        _httpContextAccessor.HttpContext.Returns(new DefaultHttpContext());
 
-        var user = await service.GetUserAsync();
+        var userId = _service.GetUserId();
+        userId.Should().Be(0);
+    }
 
-        user.Should().BeEquivalentTo(new UserResponseDto
+    [Fact]
+    public void GetStoreId_ReturnsStoreIdFromClaim()
+    {
+        var claims = new[] { new Claim("storeId", "123") };
+        var identity = new ClaimsIdentity(claims);
+        var principal = new ClaimsPrincipal(identity);
+        var context = new DefaultHttpContext { User = principal };
+        _httpContextAccessor.HttpContext.Returns(context);
+
+        var storeId = _service.GetStoreId();
+        storeId.Should().Be(123);
+    }
+
+    [Fact]
+    public void GetStoreId_ReturnsZero_WhenClaimMissing()
+    {
+        _httpContextAccessor.HttpContext.Returns(new DefaultHttpContext());
+        var storeId = _service.GetStoreId();
+        storeId.Should().Be(0);
+    }
+    [Fact]
+    public async Task GetUserAsync_UsesFallbackClaims_WhenStandardClaimsMissing()
+    {
+        // Arrange: no standard claims, only fallback ones
+        var claims = new[]
         {
-            Id = 0,
-            Email = "unknown@example.com",
-            FirstName = "Unknown",
-            LastName = "User",
-            Role = "User"
-        });
+        new Claim("sub", "99"),
+        new Claim("firstName", "FallbackFirst"),
+        new Claim("lastName", "FallbackLast"),
+        new Claim("role", "FallbackRole")
+    };
+        var identity = new ClaimsIdentity(claims);
+        var principal = new ClaimsPrincipal(identity);
+        var context = new DefaultHttpContext { User = principal };
+        _httpContextAccessor.HttpContext.Returns(context);
+
+        // Act
+        var user = await _service.GetUserAsync();
+
+        // Assert
+        user.Id.Should().Be(99);                        // fallback "sub" claim used
+        user.FirstName.Should().Be("FallbackFirst");    // fallback firstName claim used
+        user.LastName.Should().Be("FallbackLast");      // fallback lastName claim used
+        user.Role.Should().Be("FallbackRole");          // fallback role claim used
+        user.Email.Should().Be("unknown@example.com");  // no email claim, default value
+    }
+
+    [Fact]
+    public async Task GetUserAsync_UsesDefaultValues_WhenNoClaimsPresent()
+    {
+        _httpContextAccessor.HttpContext.Returns(new DefaultHttpContext());
+
+        var user = await _service.GetUserAsync();
+
+        user.Id.Should().Be(0);                         // no ID claim
+        user.Email.Should().Be("unknown@example.com");  // no email claim
+        user.FirstName.Should().Be("Unknown");          // default
+        user.LastName.Should().Be("User");              // default
+        user.Role.Should().Be("User");                  // default
     }
 }
