@@ -71,6 +71,23 @@ public class UserContextServiceTests
         service.GetUserId().Should().Be(expected);
     }
 
+    [Theory]
+    [InlineData("15", 15)]
+    [InlineData("0", 0)]
+    [InlineData("not-a-number", 0)]
+    [InlineData(null, 0)]
+    public void GetStoreId_ShouldParseStoreIdClaim(string? claimValue, int expected)
+    {
+        var claims = new List<Claim>();
+        if (claimValue != null)
+            claims.Add(new Claim("storeId", claimValue));
+
+        var accessor = CreateHttpContextAccessor(claims);
+        var service = new UserContextService(accessor);
+
+        service.GetStoreId().Should().Be(expected);
+    }
+
     [Fact]
     public async Task GetUserAsync_ShouldReturnUserResponseDto_WithClaims()
     {
