@@ -124,7 +124,7 @@ jobs:
                   JWT_AUDIENCE: "${{ secrets.JWT_AUDIENCE || 'https://hrs-api' }}"
                   JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
                   ALLOWED_ORIGINS: "${{ secrets.ALLOWED_ORIGINS || 'http://localhost:4200' }}"
-                  RENTAL_ORDER_SERVICE: "${{ secrets.RENTAL_ORDER_SERVICE || 'http://hrs-rental-order-service.uat.svc.cluster.local' }}"
+                  RENTAL_ORDER_SERVICE: "${{ secrets.RENTAL_ORDER_SERVICE || 'https://hrs-rental-order-service.uat.svc.cluster.local' }}"
                   FRONTEND_URL: "${{ secrets.FRONTEND_URL || 'http://localhost:4200' }}"
                   STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
               run: |
