@@ -135,4 +135,14 @@ public class UserContextServiceTests
         user.LastName.Should().Be("User");              // default
         user.Role.Should().Be("User");                  // default
     }
+
+    private static IHttpContextAccessor CreateHttpContextAccessor(IEnumerable<Claim> claims)
+    {
+        var identity = new ClaimsIdentity(claims);
+        var principal = new ClaimsPrincipal(identity);
+        var context = new DefaultHttpContext { User = principal };
+        var accessor = Substitute.For<IHttpContextAccessor>();
+        accessor.HttpContext.Returns(context);
+        return accessor;
+    }
 }
