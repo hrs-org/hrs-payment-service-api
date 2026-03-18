@@ -36,11 +36,11 @@ public class AuthorizationHeaderHandler : DelegatingHandler
                 // Add the Authorization header to the outgoing request
                 request.Headers.Authorization = AuthenticationHeaderValue.Parse(authHeader);
 
-                _logger.LogDebug("Authorization header forwarded to {RequestUri}", request.RequestUri);
+                _logger.LogDebug("Authorization header forwarded to {RequestTarget}", SanitizeRequestTarget(request.RequestUri));
             }
             else
             {
-                _logger.LogWarning("No Authorization header found in current request context for {RequestUri}", request.RequestUri);
+                _logger.LogWarning("No Authorization header found in current request context for {RequestTarget}", SanitizeRequestTarget(request.RequestUri));
             }
         }
         else
@@ -50,5 +50,16 @@ public class AuthorizationHeaderHandler : DelegatingHandler
 
         // Continue with the request
         return await base.SendAsync(request, cancellationToken);
+    }
+
+    private static string SanitizeRequestTarget(Uri? requestUri)
+    {
+        if (requestUri is null)
+        {
+            return "unknown";
+        }
+
+        var path = requestUri.GetLeftPart(UriPartial.Path);
+        return string.IsNullOrWhiteSpace(path) ? "unknown" : path;
     }
 }

@@ -4,6 +4,7 @@ using HRS.API.Contracts.DTOs.Payment;
 using HRS.API.Controllers;
 using HRS.API.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Stripe.Checkout;
 using Xunit;
@@ -20,7 +21,8 @@ public class PaymentControllerTests
     public PaymentControllerTests()
     {
         _service = Substitute.For<IPaymentService>();
-        _controller = new PaymentController(_service);
+        var logger = Substitute.For<ILogger<PaymentController>>();
+        _controller = new PaymentController(_service, logger);
     }
 
     [Fact]

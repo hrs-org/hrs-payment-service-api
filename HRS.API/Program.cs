@@ -18,6 +18,8 @@ using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.AddJsonConsole();
+
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAppConfiguration, AppConfiguration>();
 builder.Services.AddScoped<IUserContextService, UserContextService>();
@@ -123,6 +125,7 @@ if (app.Environment.IsDevelopment()) app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
+app.UseMiddleware<SecurityLoggingMiddleware>();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseCors("AllowWebClient");
 app.UseAuthentication();
