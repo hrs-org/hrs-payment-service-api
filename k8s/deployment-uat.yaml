@@ -15,6 +15,7 @@ spec:
             labels:
                 app: hrs-payment-service
         spec:
+            serviceAccountName: hrs-payment-service-sa
             # SNYK-CC-K8S-6: Add security context at pod level
             securityContext:
                 runAsNonRoot: true
