@@ -27,7 +27,7 @@ public class PaymentController : ControllerBase
     [HttpPost("create-session")]
     public async Task<ActionResult> GetAvailability([FromBody] PaymentRequestDto request)
     {
-        var hashedUserId = HashIdentifier(User.FindFirst("sub")?.Value ?? "anonymous");
+        var hashedUserId = GetHashedUserId();
 
         _logger.LogInformation(
             "Payment create-session requested order_id={OrderId} amount={Amount} user_id={UserId}",
@@ -48,7 +48,7 @@ public class PaymentController : ControllerBase
     [HttpPost("verify")]
     public async Task<IActionResult> VerifyPayment([FromBody] VerifyPaymentRequestDto request)
     {
-        var hashedUserId = HashIdentifier(User.FindFirst("sub")?.Value ?? "anonymous");
+        var hashedUserId = GetHashedUserId();
 
         _logger.LogInformation(
             "Payment verify requested secret_key_present={SecretKeyPresent} user_id={UserId}",
@@ -85,7 +85,7 @@ public class PaymentController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> MongoDBGet(string id)
     {
-        var hashedUserId = HashIdentifier(User.FindFirst("sub")?.Value ?? "anonymous");
+        var hashedUserId = GetHashedUserId();
         _logger.LogInformation(
             "event_type={EventType} user_id={UserId} payment_id={PaymentId}",
             "payment.sensitive_access",
@@ -99,7 +99,7 @@ public class PaymentController : ControllerBase
     [HttpGet("orders/{id}")]
     public async Task<IActionResult> GetByOrderId(string id)
     {
-        var hashedUserId = HashIdentifier(User.FindFirst("sub")?.Value ?? "anonymous");
+        var hashedUserId = GetHashedUserId();
         _logger.LogInformation(
             "event_type={EventType} user_id={UserId} order_id={OrderId}",
             "payment.sensitive_access",
@@ -140,6 +140,12 @@ public class PaymentController : ControllerBase
 
         _logger.LogInformation("Payment update succeeded order_id={OrderId}", request.OrderId);
         return Ok(ApiResponse<object>.OkResponse(payment, "Payment updated successfully"));
+    }
+
+    private string GetHashedUserId()
+    {
+        var subject = HttpContext?.User?.FindFirst("sub")?.Value ?? "anonymous";
+        return HashIdentifier(subject);
     }
 
     private static string HashIdentifier(string value)
