@@ -315,10 +315,30 @@ jobs:
                   format: "sarif"
                   output: "trivy-results.sarif"
 
+            - name: Generate Trivy HTML Report
+              uses: aquasecurity/trivy-action@b2933f565dbc598b29947660e66259e3c7bc8561
+              with:
+                  scan-type: "fs"
+                  scan-ref: "."
+                  format: "html"
+                  output: "trivy-report.html"
+                  severity: "CRITICAL,HIGH"
+                  ignore-unfixed: true
+
             - name: Upload SARIF to GitHub Security
+              # Forked PRs do not get a token with security-events write permission.
+              if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
               uses: github/codeql-action/upload-sarif@v4
               with:
                   sarif_file: "trivy-results.sarif"
+
+            - name: Upload Trivy HTML report
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: trivy-html-report
+                  path: trivy-report.html
+                  retention-days: 30
 
     pre-dast:
         name: Pre-DAST Security Scan
