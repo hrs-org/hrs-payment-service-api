@@ -83,6 +83,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = "Employee,Manager,Admin")]
     public async Task<IActionResult> MongoDBGet(string id)
     {
         var hashedUserId = GetHashedUserId();
@@ -97,6 +98,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet("orders/{id}")]
+    [Authorize(Roles = "Employee,Manager,Admin")]
     public async Task<IActionResult> GetByOrderId(string id)
     {
         var hashedUserId = GetHashedUserId();

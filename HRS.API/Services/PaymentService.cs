@@ -2,9 +2,12 @@ using HRS.API.Services.Interfaces;
 using HRS.Domain.Entities;
 using HRS.Domain.Enums;
 using HRS.Domain.Interfaces;
+using HRS.API.Contracts.DTOs;
 using HRS.Shared.Core.Interfaces;
 using Stripe;
 using Stripe.Checkout;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 
 namespace HRS.API.Services;
 
@@ -36,6 +39,16 @@ public class PaymentService : IPaymentService
     public async Task<Session> CreatePayments(string orderId, double amount)
     {
         StripeConfiguration.ApiKey = _appConfiguration.StripeApiKey;
+
+        var storeId = _userContextService.GetStoreId();
+        var order = await GetOrderSecurityCheckAsync(orderId);
+        if (order.StoreId != storeId)
+            throw new InvalidOperationException("Order does not belong to your store.");
+        // Payment-service Domain does not include RentalStatus enum.
+        // The Order API returns Status as string (e.g. "PendingPayment").
+        if (!string.Equals(order.Status, "PendingPayment", StringComparison.Ordinal))
+            throw new InvalidOperationException("Only pending payment orders can be paid.");
+
         var user = await _userContextService.GetUserAsync();
         var id = user.Id.ToString();
         var orderName = "OrderID:" + orderId + "-User:" + id;
@@ -121,8 +134,28 @@ public class PaymentService : IPaymentService
         await _paymentRepository.AddAsync(payment);
     }
 
+    private async Task<OrderSecurityCheckDto> GetOrderSecurityCheckAsync(string orderId)
+    {
+        // Security: validate order/store before allowing Stripe checkout creation.
+        // This endpoint is protected by JWT and will include current caller's auth context.
+        var response = await _httpClient.GetFromJsonAsync<ApiResponse<OrderSecurityCheckDto>>($"/api/orders/{orderId}");
+        if (response?.Data == null)
+            throw new InvalidOperationException("Order not found.");
+        return response.Data;
+    }
+
+    private sealed class OrderSecurityCheckDto
+    {
+        public int StoreId { get; set; }
+        public string Status { get; set; } = string.Empty;
+    }
+
     public async Task<String> AddAsyncPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
     {
+        var storeId = _userContextService.GetStoreId();
+        var order = await GetOrderSecurityCheckAsync(orderId);
+        if (order.StoreId != storeId)
+            throw new InvalidOperationException("Order does not belong to your store.");
 
         var user = await _userContextService.GetUserAsync();
 
@@ -147,6 +180,10 @@ public class PaymentService : IPaymentService
 
     public async Task<String> UpdateAsyncPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
     {
+        var storeId = _userContextService.GetStoreId();
+        var order = await GetOrderSecurityCheckAsync(orderId);
+        if (order.StoreId != storeId)
+            throw new InvalidOperationException("Order does not belong to your store.");
 
         var user = await _userContextService.GetUserAsync();
         var payment = await _paymentRepository.GetByRentalOrderIdAsync(orderId);
