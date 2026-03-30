@@ -7,9 +7,7 @@ namespace HRS.API.Contracts.DTOs.Payment;
 public class PaymentRequestDto
 {
     [Required] public string OrderId { get; set; } = string.Empty;
-
-    /// <summary>Ignored by the server; the checkout total is taken from the order record to prevent tampering.</summary>
-    public double? Amount { get; set; }
+    [Required] public double Amount { get; set; }
 }
 
 public class VerifyPaymentRequestDto

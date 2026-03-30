@@ -1,9 +1,5 @@
 using System.Net;
-using System.Text;
-using System.Text.Json;
 using FluentAssertions;
-using HRS.API.Contracts.DTOs;
-using HRS.API.Contracts.DTOs.Payment;
 using HRS.API.Services;
 using HRS.API.Services.Interfaces;
 using HRS.Domain.Entities;
@@ -31,7 +27,7 @@ public class PaymentServiceTests
         _userContext = Substitute.For<IUserContextService>();
         _sessionService = Substitute.For<SessionService>();
 
-        var handler = new OrderApiHttpHandler();
+        var handler = new HttpMessageHandlerStub();
         var httpClient = new HttpClient(handler)
         {
             BaseAddress = new Uri("http://localhost")
@@ -50,23 +46,19 @@ public class PaymentServiceTests
         _appConfig.StripeApiKey.Returns("sk_test");
         _appConfig.PaymentReturnPath.Returns("payment-returnpage");
 
-        var user = new UserResponseDto { Id = 1, FirstName = "Feri", LastName = "Smith", Role = "Customer", Email = "test@example.com" };
+        var user = new UserResponseDto { Id = 1, FirstName = "Feri", LastName = "Smith", Role = "Admin", Email = "test@example.com" };
         _userContext.GetUserAsync().Returns(Task.FromResult(user));
 
         var session = new Session { Id = "sess_123" };
         _sessionService.CreateAsync(Arg.Any<SessionCreateOptions>()).Returns(Task.FromResult(session));
 
+        // _httpClient.PostAsJsonAsync(Arg.Any<string>(), Arg.Any<object>())
+        //       .Returns(Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
         // Act
-        var result = await _service.CreatePayments("order_1");
+        var result = await _service.CreatePayments("order_1", 99.99);
 
         // Assert
         result.Should().Be(session);
-        await _sessionService.Received(1).CreateAsync(Arg.Is<SessionCreateOptions>(o =>
-            o.Metadata != null &&
-            o.Metadata.TryGetValue("orderId", out var oid) &&
-            oid == "order_1" &&
-            o.LineItems!.Count == 1 &&
-            o.LineItems[0].PriceData!.UnitAmount == 9999));
     }
 
     [Fact]
@@ -118,15 +110,12 @@ public class PaymentServiceTests
             Id = "sess_123",
             PaymentStatus = "paid",
             Status = "complete",
-            AmountTotal = 9999,
-            Metadata = new Dictionary<string, string> { ["orderId"] = "order_1" }
+            AmountTotal = 12345
         };
         _sessionService.GetAsync(Arg.Any<string>()).Returns(session);
 
-        var user = new UserResponseDto { Id = 1, FirstName = "Feri", LastName = "Smith", Role = "Customer", Email = "test@example.com" };
-        _userContext.GetUserAsync().Returns(Task.FromResult(user));
-
-        var handler = new OrderApiHttpHandler();
+        // Stub HttpClient response
+        var handler = new HttpMessageHandlerStub(); // returns 200 OK
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var factory = Substitute.For<IHttpClientFactory>();
         factory.CreateClient("RentalOrderService").Returns(httpClient);
@@ -136,51 +125,8 @@ public class PaymentServiceTests
         // Act
         await serviceWithHttp.VerifyPaymentAsync("cs_test_abc_def_ghi");
 
-        // Assert: no exception; handler returns OK for approve-payment PUT
-    }
-
-    [Fact]
-    public async Task VerifyPaymentAsync_Throws_WhenPaidAmountDoesNotMatchOrder()
-    {
-        _appConfig.StripeApiKey.Returns("sk_test");
-        var session = new Session
-        {
-            Id = "sess_123",
-            PaymentStatus = "paid",
-            Status = "complete",
-            AmountTotal = 100,
-            Metadata = new Dictionary<string, string> { ["orderId"] = "order_1" }
-        };
-        _sessionService.GetAsync(Arg.Any<string>()).Returns(session);
-
-        var user = new UserResponseDto { Id = 1, FirstName = "Feri", LastName = "Smith", Role = "Customer", Email = "test@example.com" };
-        _userContext.GetUserAsync().Returns(Task.FromResult(user));
-
-        var handler = new OrderApiHttpHandler();
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        var factory = Substitute.For<IHttpClientFactory>();
-        factory.CreateClient("RentalOrderService").Returns(httpClient);
-
-        var serviceWithHttp = new PaymentService(_userContext, _appConfig, factory, _paymentRepo, _sessionService);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            serviceWithHttp.VerifyPaymentAsync("cs_test_abc_def_ghi"));
-    }
-
-    [Fact]
-    public async Task VerifyPaymentAsync_Throws_WhenOrderMetadataMissing()
-    {
-        _appConfig.StripeApiKey.Returns("sk_test");
-        var session = new Session
-        {
-            Id = "sess_123",
-            PaymentStatus = "paid",
-            Status = "complete",
-            AmountTotal = 9999
-        };
-        _sessionService.GetAsync(Arg.Any<string>()).Returns(session);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.VerifyPaymentAsync("cs_test_abc_def_ghi"));
+        // Assert
+        // HttpMessageHandlerStub already returns OK, so no exception is thrown
     }
 
     [Fact]
@@ -226,35 +172,11 @@ public class PaymentServiceTests
         existing.PaymentType.Should().Be(PaymentType.Stripe);
         existing.Status.Should().Be(PaymentStatus.Completed);
     }
-    /// <summary>GET /api/orders/order_1 returns a pending online order; other calls return 200 OK.</summary>
-    private sealed class OrderApiHttpHandler : HttpMessageHandler
+    // Stub HttpMessageHandler to avoid real HTTP requests
+    private class HttpMessageHandlerStub : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (request.Method == HttpMethod.Get &&
-                request.RequestUri != null &&
-                request.RequestUri.AbsolutePath.Contains("/api/orders/", StringComparison.Ordinal))
-            {
-                var payload = new ApiResponse<RentalOrderForPaymentDto>
-                {
-                    Success = true,
-                    Data = new RentalOrderForPaymentDto
-                    {
-                        Id = "order_1",
-                        TotalAmount = 99.99m,
-                        Status = "PendingPayment",
-                        CustomerId = 1,
-                        PaymentType = "Other"
-                    }
-                };
-                var json = JsonSerializer.Serialize(payload,
-                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(json, Encoding.UTF8, "application/json")
-                });
-            }
-
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
         }
     }

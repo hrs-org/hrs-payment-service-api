@@ -6,7 +6,7 @@ namespace HRS.API.Services.Interfaces;
 
 public interface IPaymentService
 {
-    Task<Session> CreatePayments(string orderId);
+    Task<Session> CreatePayments(string orderId, double amount);
     Task VerifyPaymentAsync(string clientSecret);
 
     Task RecordPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType);

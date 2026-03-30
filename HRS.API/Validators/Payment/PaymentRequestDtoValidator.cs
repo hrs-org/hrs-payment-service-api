@@ -11,6 +11,10 @@ public class PaymentRequestDtoValidator : AbstractValidator<PaymentRequestDto>
             .NotNull().WithMessage("OrderId is required.")
             .NotEmpty().WithMessage("OrderId is required.")
             .Must(id => !string.IsNullOrWhiteSpace(id)).WithMessage("OrderId cannot be whitespace.");
+
+        RuleFor(x => x.Amount)
+            .NotNull().WithMessage("Amount is required.")
+            .GreaterThan(0).WithMessage("Amount must be greater than zero.");
     }
 }
 

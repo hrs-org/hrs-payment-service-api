@@ -1,11 +1,7 @@
-using System.Net.Http.Json;
-using HRS.API.Contracts.DTOs;
-using HRS.API.Contracts.DTOs.Payment;
 using HRS.API.Services.Interfaces;
 using HRS.Domain.Entities;
 using HRS.Domain.Enums;
 using HRS.Domain.Interfaces;
-using HRS.Shared.Core.Dtos;
 using HRS.Shared.Core.Interfaces;
 using Stripe;
 using Stripe.Checkout;
@@ -37,18 +33,10 @@ public class PaymentService : IPaymentService
         _sessionService = sessionService ?? new SessionService();
     }
 
-    public async Task<Session> CreatePayments(string orderId)
+    public async Task<Session> CreatePayments(string orderId, double amount)
     {
         StripeConfiguration.ApiKey = _appConfiguration.StripeApiKey;
         var user = await _userContextService.GetUserAsync();
-        var order = await FetchOrderForPaymentAsync(orderId);
-        EnsureOrderAwaitingPayment(order);
-        EnsureUserCanInitiatePayment(user, order);
-
-        var unitAmountMinor = OrderTotalToMinorUnits(order.TotalAmount);
-        if (unitAmountMinor <= 0)
-            throw new InvalidOperationException("Order total is invalid for checkout.");
-
         var id = user.Id.ToString();
         var orderName = "OrderID:" + orderId + "-User:" + id;
 
@@ -60,7 +48,7 @@ public class PaymentService : IPaymentService
                 {
                     PriceData = new SessionLineItemPriceDataOptions
                     {
-                        UnitAmount = unitAmountMinor,
+                        UnitAmount = (long)(amount * 100),
                         Currency = "SGD",
                         ProductData = new SessionLineItemPriceDataProductDataOptions
                         {
@@ -74,8 +62,7 @@ public class PaymentService : IPaymentService
             CustomerEmail = user.Email,
             UiMode = "embedded",
             ReturnUrl = _appConfiguration.PaymentReturnPath,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(35),
-            Metadata = new Dictionary<string, string> { ["orderId"] = orderId }
+            ExpiresAt = DateTime.UtcNow.AddMinutes(35)
         };
 
         var session = await _sessionService.CreateAsync(options);
@@ -102,56 +89,11 @@ public class PaymentService : IPaymentService
         if (session.PaymentStatus != "paid" || session.Status != "complete")
             throw new InvalidOperationException("Payment not completed.");
 
-        if (session.Metadata == null ||
-            !session.Metadata.TryGetValue("orderId", out var metadataOrderId) ||
-            string.IsNullOrWhiteSpace(metadataOrderId))
-            throw new InvalidOperationException("Checkout session is missing order metadata.");
-
-        var order = await FetchOrderForPaymentAsync(metadataOrderId);
-        var user = await _userContextService.GetUserAsync();
-        EnsureUserCanInitiatePayment(user, order);
-
-        var expectedMinor = OrderTotalToMinorUnits(order.TotalAmount);
-        if (!session.AmountTotal.HasValue || session.AmountTotal.Value != expectedMinor)
-            throw new InvalidOperationException("Paid amount does not match the order total.");
-
-        var res = await _httpClient.PutAsJsonAsync($"/api/orders/{sessionId}/approve-payment",
-            new { sessionId, amount = session.AmountTotal });
-        res.EnsureSuccessStatusCode();
-    }
-
-    private async Task<RentalOrderForPaymentDto> FetchOrderForPaymentAsync(string orderId)
-    {
-        var response = await _httpClient.GetAsync($"/api/orders/{Uri.EscapeDataString(orderId)}");
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            throw new KeyNotFoundException("Order not found.");
-
-        response.EnsureSuccessStatusCode();
-        var wrapped = await response.Content.ReadFromJsonAsync<ApiResponse<RentalOrderForPaymentDto>>();
-        if (wrapped?.Data == null)
-            throw new KeyNotFoundException("Order not found.");
-
-        if (!string.Equals(wrapped.Data.Id, orderId, StringComparison.Ordinal))
-            throw new InvalidOperationException("Order response does not match requested order.");
-
-        return wrapped.Data;
-    }
-
-    private static long OrderTotalToMinorUnits(decimal totalAmount) =>
-        (long)Math.Round(totalAmount * 100m, 0, MidpointRounding.AwayFromZero);
-
-    private static void EnsureOrderAwaitingPayment(RentalOrderForPaymentDto order)
-    {
-        if (!string.Equals(order.Status, "PendingPayment", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"Order is not awaiting payment (status: {order.Status}).");
-    }
-
-    private static void EnsureUserCanInitiatePayment(UserResponseDto user, RentalOrderForPaymentDto order)
-    {
-        if (string.Equals(user.Role, "Customer", StringComparison.OrdinalIgnoreCase))
+        if (session.Status == "complete")
         {
-            if (order.CustomerId != user.Id)
-                throw new UnauthorizedAccessException("You cannot pay for this order.");
+            var res = await _httpClient.PutAsJsonAsync($"/api/orders/{sessionId}/approve-payment", new { sessionId, amount = session.AmountTotal });
+            res.EnsureSuccessStatusCode();
+            await Task.CompletedTask;
         }
     }
 

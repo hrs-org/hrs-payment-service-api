@@ -12,15 +12,16 @@ public class PaymentRequestDtoValidatorTests
     [Fact]
     public void Should_Have_Error_When_Model_Is_Not_Valid()
     {
-        var model = new PaymentRequestDto { OrderId = "" };
+        var model = new PaymentRequestDto { OrderId = "", Amount = 0 };
         var result = _validator.TestValidate(model);
         result.ShouldHaveValidationErrorFor(x => x.OrderId);
+        result.ShouldHaveValidationErrorFor(x => x.Amount);
     }
 
     [Fact]
     public void Should_Not_Have_Error_When_Model_Is_Valid()
     {
-        var model = new PaymentRequestDto { OrderId = "1" };
+        var model = new PaymentRequestDto { OrderId = "1", Amount = 100 };
         var result = _validator.TestValidate(model);
         result.ShouldNotHaveAnyValidationErrors();
     }
