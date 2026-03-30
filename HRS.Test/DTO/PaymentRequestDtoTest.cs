@@ -17,12 +17,11 @@ public class PaymentRequestDtoTests
     }
 
     [Fact]
-    public void PaymentRequestDto_ShouldBeValid_WhenAllRequiredFieldsAreSet()
+    public void PaymentRequestDto_ShouldBeValid_WhenOrderIdIsSet()
     {
         var dto = new PaymentRequestDto
         {
-            OrderId = "ORD123",
-            Amount = 100.5
+            OrderId = "ORD123"
         };
 
         var results = ValidateModel(dto);
@@ -33,10 +32,7 @@ public class PaymentRequestDtoTests
     [Fact]
     public void PaymentRequestDto_ShouldBeInvalid_WhenOrderIdMissing()
     {
-        var dto = new PaymentRequestDto
-        {
-            Amount = 100
-        };
+        var dto = new PaymentRequestDto();
 
         var results = ValidateModel(dto);
 

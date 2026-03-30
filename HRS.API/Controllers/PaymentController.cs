@@ -30,12 +30,11 @@ public class PaymentController : ControllerBase
         var hashedUserId = GetHashedUserId();
 
         _logger.LogInformation(
-            "Payment create-session requested order_id={OrderId} amount={Amount} user_id={UserId}",
+            "Payment create-session requested order_id={OrderId} user_id={UserId}",
             request.OrderId,
-            request.Amount,
             hashedUserId);
 
-        var result = await _paymentService.CreatePayments(request.OrderId, request.Amount);
+        var result = await _paymentService.CreatePayments(request.OrderId);
 
         _logger.LogInformation(
             "Payment create-session succeeded order_id={OrderId} session_id_present={SessionIdPresent}",
