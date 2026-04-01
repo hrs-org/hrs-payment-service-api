@@ -7,6 +7,7 @@ using HRS.Shared.Core.Interfaces;
 using Stripe;
 using Stripe.Checkout;
 using System.Net.Http.Json;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 
 namespace HRS.API.Services;
@@ -144,6 +145,10 @@ public class PaymentService : IPaymentService
         return response.Data;
     }
 
+    [SuppressMessage(
+        "Performance",
+        "CA1812:Avoid uninstantiated internal classes",
+        Justification = "Used by System.Text.Json deserialization via GetFromJsonAsync.")]
     private sealed class OrderSecurityCheckDto
     {
         public int StoreId { get; set; }
