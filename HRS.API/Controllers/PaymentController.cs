@@ -12,6 +12,7 @@ namespace HRS.API.Controllers;
 
 [ApiController]
 [Route("api/payments")]
+[Authorize]
 public class PaymentController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
@@ -24,7 +25,6 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost("create-session")]
-    [Authorize(Policy = "write:payment")]
     public async Task<ActionResult> GetAvailability([FromBody] PaymentRequestDto request)
     {
         var hashedUserId = GetHashedUserId();
@@ -46,7 +46,6 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost("verify")]
-    [Authorize(Policy = "update:payment")]
     public async Task<IActionResult> VerifyPayment([FromBody] VerifyPaymentRequestDto request)
     {
         var hashedUserId = GetHashedUserId();
@@ -85,6 +84,7 @@ public class PaymentController : ControllerBase
 
     [HttpGet("{id}")]
     [Authorize(Policy = "read:payment")]
+
     public async Task<IActionResult> MongoDBGet(string id)
     {
         var hashedUserId = GetHashedUserId();
@@ -114,7 +114,6 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = "write:payment")]
     public async Task<IActionResult> AddAsyncPayment([FromBody] CreatePaymentRequestDto request)
     {
         _logger.LogInformation(
@@ -131,7 +130,6 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPut]
-    [Authorize(Policy = "update:payment")]
     public async Task<IActionResult> UpdateAsyncPayment([FromBody] CreatePaymentRequestDto request)
     {
         _logger.LogInformation(
@@ -159,5 +157,4 @@ public class PaymentController : ControllerBase
         var hashBytes = SHA256.HashData(inputBytes);
         return Convert.ToHexString(hashBytes)[..16];
     }
-
 }
