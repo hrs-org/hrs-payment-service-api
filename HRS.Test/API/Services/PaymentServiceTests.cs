@@ -25,6 +25,7 @@ public class PaymentServiceTests
         _appConfig = Substitute.For<IAppConfiguration>();
         _paymentRepo = Substitute.For<IPaymentRepository>();
         _userContext = Substitute.For<IUserContextService>();
+        _userContext.GetStoreId().Returns(1);
         _sessionService = Substitute.For<SessionService>();
 
         var handler = new HttpMessageHandlerStub();
@@ -177,7 +178,20 @@ public class PaymentServiceTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            if (request.Method == HttpMethod.Get &&
+                request.RequestUri?.AbsolutePath.StartsWith("/api/orders/", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                const string orderSecurityJson = "{\"data\":{\"storeId\":1,\"status\":\"PendingPayment\"}}";
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(orderSecurityJson, System.Text.Encoding.UTF8, "application/json")
+                });
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(string.Empty)
+            });
         }
     }
 

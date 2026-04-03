@@ -563,7 +563,8 @@ jobs:
                   IMAGE_TAG: ${{ needs.docker-build.outputs.image-tag }}
                   ACR_NAME: ${{ secrets.ACR_NAME }}
                   MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING || 'mongodb://localhost:27017' }}
-                  JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+                  AUTH0_DOMAIN: ${{ secrets.AUTH0_DOMAIN }}
+                  AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE }}
                   ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS || 'http://localhost:4200' }}
                   STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY || 'stripe_api_key_not_set' }}
                   RENTAL_ORDER_SERVICE: ${{ secrets.RENTAL_ORDER_SERVICE || 'http://localhost:5001' }}
@@ -585,9 +586,8 @@ jobs:
                   docker run -d -p 5000:8080 --name hrs-payment-service \
                     -e ASPNETCORE_ENVIRONMENT=Production \
                     -e ConnectionStrings__DefaultConnection="$MONGODB_CONNECTION_STRING" \
-                    -e Jwt__Key="$JWT_SECRET_KEY" \
-                    -e Jwt__Issuer="HRSApp" \
-                    -e Jwt__Audience="HRSUsers" \
+                    -e Auth0__Domain="$AUTH0_DOMAIN" \
+                    -e Auth0__Audience="$AUTH0_AUDIENCE" \
                     -e AllowedOrigins="$ALLOWED_ORIGINS" \
                     -e Payment__Stripe__ApiKey="$STRIPE_API_KEY" \
                     -e RentalOrderService="$RENTAL_ORDER_SERVICE" \

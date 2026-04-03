@@ -25,7 +25,7 @@ public class UserContextServiceTests
         // Arrange
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, "42"),
+            new Claim("userId", "42"),
             new Claim(ClaimTypes.Email, "test@example.com"),
             new Claim(ClaimTypes.GivenName, "John"),
             new Claim(ClaimTypes.Surname, "Doe"),
@@ -101,7 +101,7 @@ public class UserContextServiceTests
         // Arrange: no standard claims, only fallback ones
         var claims = new[]
         {
-        new Claim("sub", "99"),
+        new Claim("userId", "99"),
         new Claim("firstName", "FallbackFirst"),
         new Claim("lastName", "FallbackLast"),
         new Claim("role", "FallbackRole")
@@ -115,7 +115,7 @@ public class UserContextServiceTests
         var user = await _service.GetUserAsync();
 
         // Assert
-        user.Id.Should().Be(99);                        // fallback "sub" claim used
+        user.Id.Should().Be(99);                        // userId claim used
         user.FirstName.Should().Be("FallbackFirst");    // fallback firstName claim used
         user.LastName.Should().Be("FallbackLast");      // fallback lastName claim used
         user.Role.Should().Be("FallbackRole");          // fallback role claim used

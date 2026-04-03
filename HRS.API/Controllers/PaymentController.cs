@@ -83,6 +83,8 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "read:payment")]
+
     public async Task<IActionResult> MongoDBGet(string id)
     {
         var hashedUserId = GetHashedUserId();
@@ -97,6 +99,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet("orders/{id}")]
+    [Authorize(Policy = "read:payment")]
     public async Task<IActionResult> GetByOrderId(string id)
     {
         var hashedUserId = GetHashedUserId();
@@ -154,5 +157,4 @@ public class PaymentController : ControllerBase
         var hashBytes = SHA256.HashData(inputBytes);
         return Convert.ToHexString(hashBytes)[..16];
     }
-
 }
