@@ -371,7 +371,7 @@ jobs:
                   FRONTEND_URL: ${{ secrets.FRONTEND_URL || 'http://localhost:4200' }}
               run: |
                   echo "Starting container..."
-                  docker run -d -p 8080:8080 --name pre-dast-payment-service \
+                  docker run -d -p 8081:8080 --name pre-dast-payment-service \
                     -e ASPNETCORE_ENVIRONMENT=Production \
                     -e ConnectionStrings__DefaultConnection="$MONGODB_CONNECTION_STRING" \
                     -e Jwt__Key="$JWT_SECRET_KEY" \
@@ -388,7 +388,7 @@ jobs:
 
                   # Wait for health endpoint with retries
                   for i in {1..10}; do
-                    if curl -f http://localhost:8080/health 2>/dev/null; then
+                    if curl -f http://localhost:8081/health 2>/dev/null; then
                       echo "Health check passed on attempt $i"
                       break
                     fi
@@ -403,11 +403,11 @@ jobs:
                   docker logs pre-dast-payment-service
 
                   echo "Testing health endpoint:"
-                  curl -f http://localhost:8080/health || echo "Health endpoint not available"
+                  curl -f http://localhost:8081/health || echo "Health endpoint not available"
 
                   echo "Verifying common probe paths do not return 5xx..."
                   for path in / /favicon.ico /robots.txt /sitemap.xml; do
-                    code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080${path}")
+                    code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8081${path}")
                     echo "${path} -> ${code}"
                     if [[ "$code" =~ ^5 ]]; then
                       echo "Endpoint ${path} returned ${code}"
@@ -418,7 +418,7 @@ jobs:
             - name: OWASP ZAP Baseline Scan
               uses: zaproxy/action-baseline@99b9334bed0a0ff8d797764e76c9ecae53168436 # v0.10.0
               with:
-                  target: "http://localhost:8080"
+                  target: "http://localhost:8081"
                   rules_file_name: ".zap/rules.tsv"
                   cmd_options: "-a -j -l WARN -T 10 -I"
 
