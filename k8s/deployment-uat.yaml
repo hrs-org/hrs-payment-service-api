@@ -114,6 +114,7 @@ metadata:
     namespace: uat
     labels:
         app: hrs-payment-service
+automountServiceAccountToken: false
 spec:
     type: ClusterIP
     ports:
