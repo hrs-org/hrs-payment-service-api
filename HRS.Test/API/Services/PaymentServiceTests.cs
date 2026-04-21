@@ -63,6 +63,42 @@ public class PaymentServiceTests
     }
 
     [Fact]
+    public async Task CreatePayments_AllowsCustomerWithoutStoreId()
+    {
+        // Arrange
+        _appConfig.StripeApiKey.Returns("sk_test");
+        _appConfig.PaymentReturnPath.Returns("payment-returnpage");
+        _userContext.GetStoreId().Returns(0);
+
+        var user = new UserResponseDto { Id = 99, FirstName = "Customer", LastName = "User", Role = "User", Email = "customer@example.com" };
+        _userContext.GetUserAsync().Returns(Task.FromResult(user));
+
+        var session = new Session { Id = "sess_customer" };
+        _sessionService.CreateAsync(Arg.Any<SessionCreateOptions>()).Returns(Task.FromResult(session));
+
+        // Act
+        var result = await _service.CreatePayments("order_1", 49.99);
+
+        // Assert
+        result.Should().Be(session);
+    }
+
+    [Fact]
+    public async Task CreatePayments_ThrowsForStoreOwnerWhenOrderBelongsToDifferentStore()
+    {
+        // Arrange
+        _appConfig.StripeApiKey.Returns("sk_test");
+        _appConfig.PaymentReturnPath.Returns("payment-returnpage");
+        _userContext.GetStoreId().Returns(2);
+
+        var user = new UserResponseDto { Id = 1, FirstName = "Feri", LastName = "Smith", Role = "Admin", Email = "test@example.com" };
+        _userContext.GetUserAsync().Returns(Task.FromResult(user));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreatePayments("order_1", 99.99));
+    }
+
+    [Fact]
     public async Task VerifyPaymentAsync_ThrowsArgumentException_WhenClientSecretInvalid()
     {
         _appConfig.StripeApiKey.Returns("sk_test");

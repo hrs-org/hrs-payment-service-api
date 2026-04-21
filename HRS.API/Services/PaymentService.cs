@@ -41,10 +41,8 @@ public class PaymentService : IPaymentService
     {
         StripeConfiguration.ApiKey = _appConfiguration.StripeApiKey;
 
-        var storeId = _userContextService.GetStoreId();
         var order = await GetOrderSecurityCheckAsync(orderId);
-        if (order.StoreId != storeId)
-            throw new InvalidOperationException("Order does not belong to your store.");
+        ValidateStoreOwnership(order.StoreId);
         // Payment-service Domain does not include RentalStatus enum.
         // The Order API returns Status as string (e.g. "PendingPayment").
         if (!string.Equals(order.Status, "PendingPayment", StringComparison.Ordinal))
@@ -157,10 +155,8 @@ public class PaymentService : IPaymentService
 
     public async Task<String> AddAsyncPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
     {
-        var storeId = _userContextService.GetStoreId();
         var order = await GetOrderSecurityCheckAsync(orderId);
-        if (order.StoreId != storeId)
-            throw new InvalidOperationException("Order does not belong to your store.");
+        ValidateStoreOwnership(order.StoreId);
 
         var user = await _userContextService.GetUserAsync();
 
@@ -185,10 +181,8 @@ public class PaymentService : IPaymentService
 
     public async Task<String> UpdateAsyncPayment(string orderId, long? amount, string? sessionId, PaymentType paymentType, PaymentStatus status)
     {
-        var storeId = _userContextService.GetStoreId();
         var order = await GetOrderSecurityCheckAsync(orderId);
-        if (order.StoreId != storeId)
-            throw new InvalidOperationException("Order does not belong to your store.");
+        ValidateStoreOwnership(order.StoreId);
 
         var user = await _userContextService.GetUserAsync();
         var payment = await _paymentRepository.GetByRentalOrderIdAsync(orderId);
@@ -222,5 +216,17 @@ public class PaymentService : IPaymentService
 
         var data = await _paymentRepository.GetByRentalOrderIdAsync(orderId);
         return data;
+    }
+
+    private void ValidateStoreOwnership(int orderStoreId)
+    {
+        var storeId = _userContextService.GetStoreId();
+
+        // Customers may not have storeId claim (returns 0), so skip store ownership check for them.
+        if (storeId <= 0)
+            return;
+
+        if (orderStoreId != storeId)
+            throw new InvalidOperationException("Order does not belong to your store.");
     }
 }
